@@ -1,2 +1,2 @@
 # Localizing-Visual-Sounds-the-Hard-Way
-Localizing Visual Sounds the Hard Way
+Code and Dataset for Localizing Visual Sounds the Hard Way
