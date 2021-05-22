@@ -25,7 +25,7 @@ def get_arguments():
     parser.add_argument('--image_size',default=224,type=int,help='Height and width of inputs')
     parser.add_argument('--gt_path',default='',type=str)
     parser.add_argument('--summaries_dir',default='',type=str,help='Model path')
-    parser.add_argument('--test',default='',type=str,help='test csv files')
+    parser.add_argument('--test',default='./metadata/test.csv',type=str,help='test csv files')
     parser.add_argument('--batch_size', default=1, type=int, help='Batch Size')
     parser.add_argument('--epsilon', default=0.65, type=float, help='pos')
     parser.add_argument('--epsilon2', default=0.4, type=float, help='neg')
@@ -43,11 +43,7 @@ class Evaluator():
         self.ciou = []
 
     def cal_CIOU(self, infer, gtmap, thres=0.01):
-        #  pdb.set_trace()
-        #  gtmap = np.reshape(gtmap,[256, 256])
-        #  infer = np.reshape(infer,[256, 256])
         infer_map = np.zeros((224, 224))
-        #  infer_map = np.zeros((20,20))
         infer_map[infer>=thres] = 1
         ciou = np.sum(infer_map*gtmap) / (np.sum(gtmap)+np.sum(infer_map*(gtmap==0)))
         self.ciou.append(ciou)
