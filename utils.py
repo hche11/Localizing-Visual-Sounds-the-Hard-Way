@@ -7,126 +7,82 @@ from torchvision.transforms import *
 from scipy import stats
 from sklearn import metrics
 import numpy as np
-import pdb
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
+import xml.etree.ElementTree as ET
+
+
+class Evaluator():
 
     def __init__(self):
-        self.reset()
+        super(Evaluator, self).__init__()
+        self.ciou = []
 
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
+    def cal_CIOU(self, infer, gtmap, thres=0.01):
+        infer_map = np.zeros((224, 224))
+        infer_map[infer>=thres] = 1
+        ciou = np.sum(infer_map*gtmap) / (np.sum(gtmap)+np.sum(infer_map*(gtmap==0)))
+        self.ciou.append(ciou)
+        return ciou, np.sum(infer_map*gtmap),(np.sum(gtmap)+np.sum(infer_map*(gtmap==0)))
 
 
-class Logger(object):
+    def cal_AUC(self):
+        results = []
+        for i in range(21):
+            result = np.sum(np.array(self.ciou)>=0.05*i)
+            result = result / len(self.ciou)
+            results.append(result)
+        x = [0.05*i for i in range(21)]
+        auc = sklearn.metrics.auc(x, results)
+        print(results)
+        return auc
 
-    def __init__(self, path, header):
-        self.log_file = open(path, 'w')
-        self.logger = csv.writer(self.log_file, delimiter='\t')
+    def final(self):
+        ciou = np.mean(np.array(self.ciou)>=0.5)
+        return ciou
 
-        self.logger.writerow(header)
-        self.header = header
-
-    def __del(self):
-        self.log_file.close()
-
-    def log(self, values):
-        write_values = []
-        for col in self.header:
-            assert col in values
-            write_values.append(values[col])
-
-        self.logger.writerow(write_values)
-        self.log_file.flush()
+    def clear(self):
+        self.ciou = []
 
 
+def normalize_img(value, vmax=None, vmin=None):
+    vmin = value.min() if vmin is None else vmin
+    vmax = value.max() if vmax is None else vmax
+    if not (vmax - vmin) == 0:
+        value = (value - vmin) / (vmax - vmin)  # vmin..vmax
 
-def accuracy(output, target, topk=(1, 5)):
-    """Computes the precision@k for the specified values of k"""
-    maxk = max(topk)
-    batch_size = target.size(0)
+    return value
 
-    _, pred = output.topk(maxk, 1, True, True)
-    pred = pred.t()
-    correct = pred.eq(target.view(1, -1).expand_as(pred))
-    res = []
-    for k in topk:
-        correct_k = correct[:k].view(-1).float().sum(0)
-        res.append(correct_k.mul_(100.0 / batch_size))
-    return res, pred
+def testset_gt(args,name):
 
-
-def reverseTransform(img):
-    mean = [0.485, 0.456, 0.406]
-    std = [0.229, 0.224, 0.225]
-
-    if len(img.shape) == 5:
-        for i in range(3):
-            img[:, i, :, :, :] = img[:, i, :, :, :]*std[i] + mean[i]
-    else:
-        for i in range(3):
-            img[:, i, :, :] = img[:, i, :, :]*std[i] + mean[i]
-    return img
-
-
-def d_prime(auc):
-    standard_normal = stats.norm()
-    d_prime = standard_normal.ppf(auc) * np.sqrt(2.0)
-    return d_prime
-
-
-def calculate_stats(output, target):
-    """Calculate statistics including mAP, AUC, etc.
-
-    Args:
-      output: 2d array, (samples_num, classes_num)
-      target: 2d array, (samples_num, classes_num)
-
-    Returns:
-      stats: list of statistic of each class.
-    """
-
-    classes_num = target.shape[-1]
-    stats = []
-
-    # Class-wise statistics
-    for k in range(classes_num):
-
-        # Average precision
-        avg_precision = metrics.average_precision_score(
-            target[:, k], output[:, k], average=None)
-
-        # AUC
-        auc = metrics.roc_auc_score(target[:, k], output[:, k], average=None)
-
-        # Precisions, recalls
-        (precisions, recalls, thresholds) = metrics.precision_recall_curve(
-            target[:, k], output[:, k])
-
-        # FPR, TPR
-        (fpr, tpr, thresholds) = metrics.roc_curve(target[:, k], output[:, k])
-
-        save_every_steps = 1000     # Sample statistics to reduce size
-        dict = {'precisions': precisions[0::save_every_steps],
-                'recalls': recalls[0::save_every_steps],
-                'AP': avg_precision,
-                'fpr': fpr[0::save_every_steps],
-                'fnr': 1. - tpr[0::save_every_steps],
-                'auc': auc}
-        stats.append(dict)
-
-    return stats
-
-
-
-
+    if args.testset == 'flickr':
+        gt = ET.parse(args.gt_path + '%s.xml' % name[:-4]).getroot()
+        gt_map = np.zeros([224,224])
+        bboxs = []
+        for child in gt: 
+            for childs in child:
+                bbox = []
+                if childs.tag == 'bbox':
+                    for index,ch in enumerate(childs):
+                        if index == 0:
+                            continue
+                        bbox.append(int(224 * int(ch.text)/256))
+                bboxs.append(bbox)
+        for item_ in bboxs:
+            temp = np.zeros([224,224])
+            (xmin,ymin,xmax,ymax) = item_[0],item_[1],item_[2],item_[3]
+            temp[item_[1]:item_[3],item_[0]:item_[2]] = 1
+            gt_map += temp
+        gt_map /= 2
+        gt_map[gt_map>1] = 1
+        
+    elif args.testset == 'vggss':
+        gt = args.gt_all[name[:-4]]
+        gt_map = np.zeros([224,224])
+        for item_ in gt:
+            item_ =  list(map(lambda x: int(224* max(x,0)), item_) )
+            temp = np.zeros([224,224])
+            (xmin,ymin,xmax,ymax) = item_[0],item_[1],item_[2],item_[3]
+            temp[ymin:ymax,xmin:xmax] = 1
+            gt_map += temp
+        gt_map[gt_map>0] = 1
+    return gt_map
 

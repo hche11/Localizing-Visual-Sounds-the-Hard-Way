@@ -11,9 +11,7 @@ import pdb
 import time
 from PIL import Image
 import glob
-import sys
-#  sys.path.append('./torchvggish/')
-#  from torchvggish import vggish_input 
+import sys 
 import scipy.io.wavfile as wav
 from scipy import signal
 import random
@@ -26,7 +24,12 @@ class GetAudioVideoDataset(Dataset):
     def __init__(self, args, mode='train', transforms=None):
  
         data = []
-        with open(args.test) as f:
+        if args.testset == 'flickr':
+            testcsv = 'metadata/flickr_test.csv'
+        elif args.testset == 'vggss':
+            testcsv = 'metadata/vggss_test.csv'
+
+        with open(testcsv) as f:
             csv_reader = csv.reader(f)
             for item in csv_reader:
                 data.append(item[0] + '.mp4')
@@ -69,12 +72,6 @@ class GetAudioVideoDataset(Dataset):
     def _init_atransform(self):
         self.aid_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize(mean=[0.0], std=[12.0])])
 #  
-    def _load_frames(self, paths):
-        frames = []
-        for path in paths:
-            frames.append(self._load_frame(path))
-        frames = self.vid_transform(frames)
-        return frames
 
     def _load_frame(self, path):
         img = Image.open(path).convert('RGB')
@@ -94,10 +91,10 @@ class GetAudioVideoDataset(Dataset):
         samples, samplerate = sf.read(self.audio_path + file[:-3]+'wav')
 
         # repeat if audio is too short
-        if samples.shape[0] < samplerate * 20:
-            n = int(samplerate * 20 / samples.shape[0]) + 1
+        if samples.shape[0] < samplerate * 10:
+            n = int(samplerate * 10 / samples.shape[0]) + 1
             samples = np.tile(samples, n)
-        resamples = samples[:samplerate*20]
+        resamples = samples[:samplerate*10]
 
         resamples[resamples > 1.] = 1.
         resamples[resamples < -1.] = -1.
