@@ -1,6 +1,6 @@
 # Localizing-Visual-Sounds-the-Hard-Way
 
-Code and Dataset for "Localizing Visual Sounds the Hard Way".
+Code and Dataset for "[**Localizing Visual Sounds the Hard Way**](https://arxiv.org/pdf/2104.02691.pdf)".
 
 The repo contains code and our pre-trained model. 
 
@@ -24,7 +24,7 @@ python test.py --data_path "path to downloaded data with structure below/" --sum
 
 ## VGG-Sound Source
 
-We provide the pretrained [**model**](https://www.dropbox.com/s/29s5fayxpqloxk9/lvs_vggss.tar?dl=0) here.
+We provide the pretrained [**model**](https://www.dropbox.com/s/zfjbod94a7ilt3d/lvs_vggss.pth.tar?dl=0) here.
 
 To test the model, run
 
