@@ -11,7 +11,7 @@ The repo contains code and our pre-trained model.
 
 ## Flickr-SoundNet
 
-We provide the pretrained [**model**](https://www.dropbox.com/s/mbxuzs2at0tbrn3/lvs_soundnet.pth.tar?dl=0) here.
+We provide the pretrained [**model**](https://drive.google.com/file/d/1Rif19nk8RpxBrkGGoI92g-fssa2qsl-m/view?usp=sharing) here.
 
 To test the model, testing data and ground truth should be downloaded from [**learning to localize sound source**](https://github.com/ardasnck/learning_to_localize_sound_source).
 
@@ -24,7 +24,7 @@ python test.py --data_path "path to downloaded data with structure below/" --sum
 
 ## VGG-Sound Source
 
-We provide the pretrained [**model**](https://www.dropbox.com/s/zfjbod94a7ilt3d/lvs_vggss.pth.tar?dl=0) here.
+We provide the pretrained [**model**](https://drive.google.com/file/d/1ieyJ7rrrR5aF8SwHNGYNS9dX9t9_apsc/view?usp=sharing) here.
 
 To test the model, run
 
